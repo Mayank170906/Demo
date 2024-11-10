@@ -23,6 +23,7 @@
       }
       .location-info {
         font-size: 1.2em;
+        margin-bottom: 20px;
       }
       .error {
         color: red;
@@ -34,6 +35,8 @@
     <div class="container">
       <h1>Real-Time Location Tracker</h1>
       <div class="location-info" id="locationInfo">Requesting location...</div>
+      <div class="location-info" id="distanceInfo"><strong>Distance covered:</strong> 0.00 meters</div>
+      <div class="location-info" id="speedInfo"><strong>Speed:</strong> 0.00 m/s</div>
     </div>
 
     <script>
@@ -52,9 +55,10 @@
               const longitude = position.coords.longitude;
               const timestamp = new Date();
 
+              // Display latitude and longitude
               document.getElementById("locationInfo").innerHTML = `
-                            <p><strong>Latitude:</strong> ${latitude.toFixed(6)}</p>
-                            <p><strong>Longitude:</strong> ${longitude.toFixed(6)}</p>
+                <p><strong>Latitude:</strong> ${latitude.toFixed(6)}</p>
+                <p><strong>Longitude:</strong> ${longitude.toFixed(6)}</p>
               `;
 
               if (previousPosition) {
@@ -68,10 +72,13 @@
                 totalDistance += distance;
 
                 const speed = calculateSpeed(distance, timestamp);
-                // Update speed and distance info
-                document.getElementById("locationInfo").innerHTML += `
-                  <p><strong>Distance covered (m):</strong> ${totalDistance.toFixed(2)}</p>
-                  <p><strong>Speed (m/s):</strong> ${speed.toFixed(2)}</p>
+
+                // Update the distance and speed on the page
+                document.getElementById("distanceInfo").innerHTML = `
+                  <strong>Distance covered:</strong> ${totalDistance.toFixed(2)} meters
+                `;
+                document.getElementById("speedInfo").innerHTML = `
+                  <strong>Speed:</strong> ${speed.toFixed(2)} m/s
                 `;
               }
 
@@ -87,8 +94,8 @@
             },
             {
               enableHighAccuracy: true,
-              timeout: 10000,
-              maximumAge: 0,
+              timeout: 10000, // 10-second timeout
+              maximumAge: 0, // Always request fresh data
             }
           );
         } else {
@@ -105,9 +112,9 @@
               const longitude = position.coords.longitude.toFixed(6);
 
               document.getElementById("locationInfo").innerHTML = `
-                            <p><strong>Latitude:</strong> ${latitude}</p>
-                            <p><strong>Longitude:</strong> ${longitude}</p>
-                        `;
+                <p><strong>Latitude:</strong> ${latitude}</p>
+                <p><strong>Longitude:</strong> ${longitude}</p>
+              `;
             },
             (error) => {
               showError(error);
@@ -162,7 +169,6 @@
       }
 
       function calculateDistance(lat1, lon1, lat2, lon2) {
-        // Haversine formula to calculate the distance between two points on the Earth
         const R = 6371000; // Earth radius in meters
         const phi1 = (lat1 * Math.PI) / 180;
         const phi2 = (lat2 * Math.PI) / 180;
@@ -175,15 +181,14 @@
             Math.sin(deltaLambda / 2) * Math.sin(deltaLambda / 2);
         const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 
-        const distance = R * c; // Result in meters
-        return distance;
+        return R * c; // Distance in meters
       }
 
       function calculateSpeed(distance, timestamp) {
         if (!previousTime) return 0;
 
         const timeDiff = (timestamp - previousTime) / 1000; // Time difference in seconds
-        return distance / timeDiff; // Speed in meters per second
+        return distance / timeDiff; // Speed in meters per second (m/s)
       }
 
       updateLocation(); // Initial call to get location
