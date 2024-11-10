@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Real-Time Location Tracker</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 100vh;
+        margin: 0;
+        background-color: #f0f0f0;
+      }
+      .container {
+        text-align: center;
+        padding: 20px;
+        border-radius: 8px;
+        background-color: #fff;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+      }
+      .location-info {
+        font-size: 1.2em;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Real-Time Location Tracker</h1>
+      <div class="location-info" id="locationInfo">Requesting location...</div>
+    </div>
+
+    <script>
+      function updateLocation() {
+        if (navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition(
+            (position) => {
+              const latitude = position.coords.latitude.toFixed(6);
+              const longitude = position.coords.longitude.toFixed(6);
+
+              document.getElementById("locationInfo").innerHTML = `
+                        <p><strong>Latitude:</strong> ${latitude}</p>
+                        <p><strong>Longitude:</strong> ${longitude}</p>
+                    `;
+            },
+            (error) => {
+              document.getElementById(
+                "locationInfo"
+              ).innerHTML = `<p>Error: ${error.message}</p>`;
+            },
+            {
+              enableHighAccuracy: true,
+              timeout: 5000,
+              maximumAge: 0,
+            }
+          );
+        } else {
+          document.getElementById("locationInfo").innerHTML =
+            "<p>Geolocation is not supported by this browser.</p>";
+        }
+      }
+
+      setInterval(updateLocation, 1000); // Update location every second
+    </script>
+  </body>
+</html>
