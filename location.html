@@ -1,111 +1,193 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Real-Time Location Tracker</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-            margin: 0;
-            background-color: #f0f0f0;
-        }
-        .container {
-            text-align: center;
-            padding: 20px;
-            border-radius: 8px;
-            background-color: #fff;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-        }
-        .location-info {
-            font-size: 1.2em;
-        }
-        .error {
-            color: red;
-            font-weight: bold;
-        }
+      body {
+        font-family: Arial, sans-serif;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 100vh;
+        margin: 0;
+        background-color: #f0f0f0;
+      }
+      .container {
+        text-align: center;
+        padding: 20px;
+        border-radius: 8px;
+        background-color: #fff;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+      }
+      .location-info {
+        font-size: 1.2em;
+      }
+      .error {
+        color: red;
+        font-weight: bold;
+      }
     </style>
-</head>
-<body>
+  </head>
+  <body>
     <div class="container">
-        <h1>Real-Time Location Tracker</h1>
-        <div class="location-info" id="locationInfo">Requesting location...</div>
+      <h1>Real-Time Location Tracker</h1>
+      <div class="location-info" id="locationInfo">Requesting location...</div>
     </div>
 
     <script>
-        function updateLocation() {
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(
-                    (position) => {
-                        const latitude = position.coords.latitude.toFixed(6);
-                        const longitude = position.coords.longitude.toFixed(6);
+      const DATABASE_URL = "https://neaak-2c785-default-rtdb.firebaseio.com/";
+      const API_KEY = "AIzaSyAWbDUMemEPJG5Xj4pZXau66uuq_9-Qf98";
 
-                        document.getElementById("locationInfo").innerHTML = `
+      let previousPosition = null;
+      let totalDistance = 0; // Distance covered in meters
+      let previousTime = null;
+
+      function updateLocation() {
+        if (navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition(
+            (position) => {
+              const latitude = position.coords.latitude;
+              const longitude = position.coords.longitude;
+              const timestamp = new Date();
+
+              document.getElementById("locationInfo").innerHTML = `
+                            <p><strong>Latitude:</strong> ${latitude.toFixed(6)}</p>
+                            <p><strong>Longitude:</strong> ${longitude.toFixed(6)}</p>
+              `;
+
+              if (previousPosition) {
+                // Calculate distance and speed if this is not the first position
+                const distance = calculateDistance(
+                  previousPosition.lat,
+                  previousPosition.lon,
+                  latitude,
+                  longitude
+                );
+                totalDistance += distance;
+
+                const speed = calculateSpeed(distance, timestamp);
+                // Update speed and distance info
+                document.getElementById("locationInfo").innerHTML += `
+                  <p><strong>Distance covered (m):</strong> ${totalDistance.toFixed(2)}</p>
+                  <p><strong>Speed (m/s):</strong> ${speed.toFixed(2)}</p>
+                `;
+              }
+
+              // Send updated location data to Firebase
+              postLocation(latitude, longitude);
+
+              // Update previous position and time
+              previousPosition = { lat: latitude, lon: longitude };
+              previousTime = timestamp;
+            },
+            (error) => {
+              showCachedPosition();
+            },
+            {
+              enableHighAccuracy: true,
+              timeout: 10000,
+              maximumAge: 0,
+            }
+          );
+        } else {
+          document.getElementById("locationInfo").innerHTML =
+            "<p>Geolocation is not supported by this browser.</p>";
+        }
+      }
+
+      function showCachedPosition() {
+        if (navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition(
+            (position) => {
+              const latitude = position.coords.latitude.toFixed(6);
+              const longitude = position.coords.longitude.toFixed(6);
+
+              document.getElementById("locationInfo").innerHTML = `
                             <p><strong>Latitude:</strong> ${latitude}</p>
                             <p><strong>Longitude:</strong> ${longitude}</p>
                         `;
-                    },
-                    (error) => {
-                        showCachedPosition();
-                    },
-                    {
-                        enableHighAccuracy: true,
-                        timeout: 10000,  // 10-second timeout
-                        maximumAge: 0,   // Always request fresh data
-                    }
-                );
-            } else {
-                document.getElementById("locationInfo").innerHTML = "<p>Geolocation is not supported by this browser.</p>";
+            },
+            (error) => {
+              showError(error);
+            },
+            {
+              maximumAge: 60000, // Use cached data if available from the last 60 seconds
             }
+          );
         }
+      }
 
-        function showCachedPosition() {
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(
-                    (position) => {
-                        const latitude = position.coords.latitude.toFixed(6);
-                        const longitude = position.coords.longitude.toFixed(6);
-
-                        document.getElementById("locationInfo").innerHTML = `
-                            <p><strong>Latitude:</strong> ${latitude}</p>
-                            <p><strong>Longitude:</strong> ${longitude}</p>
-                        `;
-                    },
-                    (error) => {
-                        showError(error);
-                    },
-                    {
-                        maximumAge: 60000  // Use cached data if available from the last 60 seconds
-                    }
-                );
-            }
+      function showError(error) {
+        let message;
+        switch (error.code) {
+          case error.PERMISSION_DENIED:
+            message = "User denied the request for Geolocation.";
+            break;
+          case error.POSITION_UNAVAILABLE:
+            message = "Location information is unavailable.";
+            break;
+          case error.TIMEOUT:
+            message = "The request to get user location timed out.";
+            break;
+          case error.UNKNOWN_ERROR:
+            message = "An unknown error occurred.";
+            break;
         }
+        document.getElementById(
+          "locationInfo"
+        ).innerHTML = `<p class='error'>${message}</p>`;
+      }
 
-        function showError(error) {
-            let message;
-            switch (error.code) {
-                case error.PERMISSION_DENIED:
-                    message = "User denied the request for Geolocation.";
-                    break;
-                case error.POSITION_UNAVAILABLE:
-                    message = "Location information is unavailable.";
-                    break;
-                case error.TIMEOUT:
-                    message = "The request to get user location timed out.";
-                    break;
-                case error.UNKNOWN_ERROR:
-                    message = "An unknown error occurred.";
-                    break;
-            }
-            document.getElementById("locationInfo").innerHTML = `<p class='error'>${message}</p>`;
-        }
+      function postLocation(latitude, longitude) {
+        fetch(`${DATABASE_URL}/locations.json?auth=${API_KEY}`, {
+          method: "PUT", // Use PUT instead of POST to overwrite data
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            latitude: latitude,
+            longitude: longitude,
+            timestamp: new Date().toISOString(), // Timestamp for the update
+          }),
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            console.log("Location data updated in Firebase:", data);
+          })
+          .catch((error) => {
+            console.error("Error updating location data:", error);
+          });
+      }
 
-        updateLocation();  // Initial call to get location
-        setInterval(updateLocation, 1000);  // Update location every second
+      function calculateDistance(lat1, lon1, lat2, lon2) {
+        // Haversine formula to calculate the distance between two points on the Earth
+        const R = 6371000; // Earth radius in meters
+        const phi1 = (lat1 * Math.PI) / 180;
+        const phi2 = (lat2 * Math.PI) / 180;
+        const deltaPhi = ((lat2 - lat1) * Math.PI) / 180;
+        const deltaLambda = ((lon2 - lon1) * Math.PI) / 180;
+
+        const a =
+          Math.sin(deltaPhi / 2) * Math.sin(deltaPhi / 2) +
+          Math.cos(phi1) * Math.cos(phi2) *
+            Math.sin(deltaLambda / 2) * Math.sin(deltaLambda / 2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+        const distance = R * c; // Result in meters
+        return distance;
+      }
+
+      function calculateSpeed(distance, timestamp) {
+        if (!previousTime) return 0;
+
+        const timeDiff = (timestamp - previousTime) / 1000; // Time difference in seconds
+        return distance / timeDiff; // Speed in meters per second
+      }
+
+      updateLocation(); // Initial call to get location
+      setInterval(updateLocation, 1000); // Update location every second
     </script>
-</body>
+  </body>
 </html>
