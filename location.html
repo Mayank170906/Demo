@@ -60,7 +60,7 @@
                     },
                     {
                         enableHighAccuracy: true,
-                        timeout: 10000,  // Increased timeout to 10 seconds
+                        timeout: 30000,  // Increased timeout to 30 seconds
                         maximumAge: 0,
                     }
                 );
@@ -99,7 +99,8 @@
             document.getElementById("locationInfo").innerHTML = `<p class='error'>${message}</p>`;
         }
 
-        setInterval(updateLocation, 1000);  // Update location every second
+        updateLocation();  // Initial call to get location
+        setInterval(updateLocation, 5000);  // Update location every 5 seconds
     </script>
 </body>
 </html>
