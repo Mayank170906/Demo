@@ -54,8 +54,8 @@
                     },
                     {
                         enableHighAccuracy: true,
-                        timeout: 30000,  // Increased timeout to 30 seconds
-                        maximumAge: 60000,  // Use cached position if available within the last 60 seconds
+                        timeout: 10000,  // 10-second timeout
+                        maximumAge: 0,   // Always request fresh data
                     }
                 );
             } else {
@@ -79,7 +79,7 @@
                         showError(error);
                     },
                     {
-                        maximumAge: 60000  // Use cached position if available within the last 60 seconds
+                        maximumAge: 60000  // Use cached data if available from the last 60 seconds
                     }
                 );
             }
@@ -105,7 +105,7 @@
         }
 
         updateLocation();  // Initial call to get location
-        setInterval(updateLocation, 5000);  // Update location every 5 seconds
+        setInterval(updateLocation, 1000);  // Update location every second
     </script>
 </body>
 </html>
