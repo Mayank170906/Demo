@@ -24,6 +24,10 @@
         .location-info {
             font-size: 1.2em;
         }
+        .error {
+            color: red;
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
@@ -46,22 +50,12 @@
                         `;
                     },
                     (error) => {
-                        if (error.code === error.TIMEOUT) {
-                            if (navigator.geolocation) {
-                                navigator.geolocation.getCurrentPosition(
-                                    showCachedPosition,
-                                    showError,
-                                    { maximumAge: 60000 }  // Use cached position if available within the last 60 seconds
-                                );
-                            }
-                        } else {
-                            document.getElementById("locationInfo").innerHTML = `<p>Error: ${error.message}</p>`;
-                        }
+                        showCachedPosition();
                     },
                     {
                         enableHighAccuracy: true,
                         timeout: 30000,  // Increased timeout to 30 seconds
-                        maximumAge: 0,
+                        maximumAge: 60000,  // Use cached position if available within the last 60 seconds
                     }
                 );
             } else {
@@ -69,15 +63,26 @@
             }
         }
 
-        function showCachedPosition(position) {
-            const latitude = position.coords.latitude.toFixed(6);
-            const longitude = position.coords.longitude.toFixed(6);
+        function showCachedPosition() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        const latitude = position.coords.latitude.toFixed(6);
+                        const longitude = position.coords.longitude.toFixed(6);
 
-            document.getElementById("locationInfo").innerHTML = `
-                <p><strong>Latitude:</strong> ${latitude}</p>
-                <p><strong>Longitude:</strong> ${longitude}</p>
-                <p>(Cached)</p>
-            `;
+                        document.getElementById("locationInfo").innerHTML = `
+                            <p><strong>Latitude:</strong> ${latitude}</p>
+                            <p><strong>Longitude:</strong> ${longitude}</p>
+                        `;
+                    },
+                    (error) => {
+                        showError(error);
+                    },
+                    {
+                        maximumAge: 60000  // Use cached position if available within the last 60 seconds
+                    }
+                );
+            }
         }
 
         function showError(error) {
