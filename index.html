@@ -3,142 +3,446 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Real-Time Location Tracker</title>
+    <title>Interactive Questionnaire</title>
     <style>
       body {
         font-family: Arial, sans-serif;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        height: 100vh;
-        margin: 0;
-        background-color: #f0f0f0;
+        line-height: 1.6;
+        background-color: #f0f4f8; /* Light grayish-blue for a calming effect */
+        margin: 20px;
       }
       .container {
-        text-align: center;
+        max-width: 600px;
+        margin: auto;
+        background: #ffffff; /* White background for contrast */
         padding: 20px;
+        border-radius: 10px;
+        border: 1px solid #e0e0e0; /* Subtle border for better definition */
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Slight shadow for depth */
+      }
+      h1,
+      h2 {
+        text-align: center;
+        color: #333; /* Dark gray for better readability */
+      }
+      h1 {
+        font-size: 1.8em;
+        margin-bottom: 10px;
+      }
+      h2 {
+        font-size: 1.5em;
+        margin-top: 20px;
+      }
+      .question {
+        margin-bottom: 20px;
+        font-size: 1.2em; /* Slightly larger text for questions */
+        color: #555; /* Medium gray for text */
+      }
+      button {
+        background-color: #007bff; /* Vibrant blue */
+        color: white;
+        border: none;
+        padding: 12px 18px;
+        border-radius: 25px; /* Rounded buttons for a modern look */
+        cursor: pointer;
+        margin-right: 10px;
+        font-size: 1em;
+        box-shadow: 0 3px 6px rgba(0, 123, 255, 0.4); /* Subtle shadow for buttons */
+        transition: background-color 0.3s, transform 0.2s;
+      }
+      button:hover {
+        background-color: #0056b3; /* Darker blue on hover */
+        transform: scale(1.05); /* Slight zoom effect on hover */
+      }
+      .summary {
+        margin-top: 20px;
+        padding: 10px;
+        background-color: #f9f9f9; /* Light grayish background for separation */
+        border: 1px solid #ddd; /* Border to define the summary box */
         border-radius: 8px;
-        background-color: #fff;
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
       }
-      .location-info {
-        font-size: 1.2em;
-      }
-      .error {
-        color: red;
-        font-weight: bold;
+      .hidden {
+        display: none;
       }
     </style>
   </head>
   <body>
     <div class="container">
-      <h1>Real-Time Location Tracker</h1>
-      <div class="location-info" id="locationInfo">Requesting location...</div>
+      <h1>Questionnaire</h1>
+      <div id="question-container" class="hidden">
+        <div class="question">
+          <p id="question-text"></p>
+        </div>
+        <div class="buttons">
+          <button id="yes-button">Yes</button>
+          <button id="no-button">No</button>
+        </div>
+      </div>
+      <div id="summary-container" class="hidden">
+        <h2>Summary</h2>
+        <div id="summary-content"></div>
+        <footer>
+          <p><strong>Copyright MGT1001 G-9</strong></p>
+          <h3>References</h3>
+          <ul>
+            <li>
+              <em>Emotional Intelligence: Why It Can Matter More Than IQ</em> by
+              Daniel Goleman
+            </li>
+            <li><em>Thinking, Fast and Slow</em> by Daniel Kahneman</li>
+            <li>
+              “Understanding Emotions: A Comprehensive Guide” – Psychology Today
+            </li>
+            <li>
+              “The Role of Emotional Awareness in Mental Health” – Journal of
+              Clinical Psychology
+            </li>
+            <li>
+              [APA.org](https://www.apa.org): American Psychological Association
+            </li>
+            <li>
+              [MentalHealth.gov](https://www.mentalhealth.gov): U.S. Department
+              of Health & Human Services
+            </li>
+          </ul>
+        </footer>
+      </div>
+      <button id="start-button">Start Psychology Test</button>
     </div>
 
     <script>
-      // Firebase Realtime Database URL and API Key
-      const DATABASE_URL = "https://neaak-2c785-default-rtdb.firebaseio.com/";
-      const API_KEY = "AIzaSyAWbDUMemEPJG5Xj4pZXau66uuq_9-Qf98";
-
-      function updateLocation() {
-        if (navigator.geolocation) {
-          navigator.geolocation.getCurrentPosition(
-            (position) => {
-              const latitude = position.coords.latitude.toFixed(6);
-              const longitude = position.coords.longitude.toFixed(6);
-
-              document.getElementById("locationInfo").innerHTML = `
-                            <p><strong>Latitude:</strong> ${latitude}</p>
-                            <p><strong>Longitude:</strong> ${longitude}</p>
-                        `;
-
-              // Send updated location data to Firebase (overwrite previous data)
-              postLocation(latitude, longitude);
-            },
-            (error) => {
-              showCachedPosition();
-            },
-            {
-              enableHighAccuracy: true,
-              timeout: 10000, // 10-second timeout
-              maximumAge: 0, // Always request fresh data
-            }
-          );
-        } else {
-          document.getElementById("locationInfo").innerHTML =
-            "<p>Geolocation is not supported by this browser.</p>";
-        }
-      }
-
-      function showCachedPosition() {
-        if (navigator.geolocation) {
-          navigator.geolocation.getCurrentPosition(
-            (position) => {
-              const latitude = position.coords.latitude.toFixed(6);
-              const longitude = position.coords.longitude.toFixed(6);
-
-              document.getElementById("locationInfo").innerHTML = `
-                            <p><strong>Latitude:</strong> ${latitude}</p>
-                            <p><strong>Longitude:</strong> ${longitude}</p>
-                        `;
-            },
-            (error) => {
-              showError(error);
-            },
-            {
-              maximumAge: 60000, // Use cached data if available from the last 60 seconds
-            }
-          );
-        }
-      }
-
-      function showError(error) {
-        let message;
-        switch (error.code) {
-          case error.PERMISSION_DENIED:
-            message = "User denied the request for Geolocation.";
-            break;
-          case error.POSITION_UNAVAILABLE:
-            message = "Location information is unavailable.";
-            break;
-          case error.TIMEOUT:
-            message = "The request to get user location timed out.";
-            break;
-          case error.UNKNOWN_ERROR:
-            message = "An unknown error occurred.";
-            break;
-        }
-        document.getElementById(
-          "locationInfo"
-        ).innerHTML = `<p class='error'>${message}</p>`;
-      }
-
-      function postLocation(latitude, longitude) {
-        // Send the latest coordinates to Firebase (overwrite the existing data)
-        fetch(`${DATABASE_URL}/locations.json?auth=${API_KEY}`, {
-          method: "PUT", // Use PUT instead of POST to overwrite data
-          headers: {
-            "Content-Type": "application/json",
+      const questions = [
+        {
+          id: 1,
+          text: "Do you often find it hard to understand your emotions?",
+          category: "Psychology",
+          next: {
+            yes: 2,
+            no: 3,
           },
-          body: JSON.stringify({
-            latitude: latitude,
-            longitude: longitude,
-            timestamp: new Date().toISOString(), // Timestamp for the update
-          }),
-        })
-          .then((response) => response.json())
-          .then((data) => {
-            console.log("Location data updated in Firebase:", data);
-          })
-          .catch((error) => {
-            console.error("Error updating location data:", error);
-          });
+          explanation: {
+            yes: "Difficulty understanding emotions can lead to challenges in managing feelings and relationships.",
+            no: "A good understanding of emotions can contribute to better mental health and interpersonal relationships.",
+          },
+        },
+        {
+          id: 2,
+          text: "Do you feel comfortable expressing your feelings to others?",
+          category: "Psychology",
+          next: {
+            yes: 4,
+            no: 5,
+          },
+          explanation: {
+            yes: "Openly expressing emotions can improve mental health and relationships.",
+            no: "Difficulty expressing emotions can lead to internalized stress and strained relationships.",
+          },
+        },
+        {
+          id: 3,
+          text: "Do you feel like people understand you easily?",
+          category: "Psychology",
+          next: {
+            yes: 6,
+            no: 7,
+          },
+          explanation: {
+            yes: "Feeling understood can boost self-esteem and social connections.",
+            no: "Difficulty being understood can lead to feelings of isolation and loneliness.",
+          },
+        },
+        {
+          id: 4,
+          text: "Have you ever felt like your emotions overwhelm you?",
+          category: "Psychology",
+          next: {
+            yes: 8,
+            no: 9,
+          },
+          explanation: {
+            yes: "Experiencing overwhelming emotions can be a sign of anxiety or other mental health conditions.",
+            no: "Being able to manage emotions effectively is a sign of good mental health.",
+          },
+        },
+        {
+          id: 5,
+          text: "Do you frequently reflect on past events?",
+          category: "Psychology",
+          next: {
+            yes: 10,
+            no: 11,
+          },
+          explanation: {
+            yes: "Reflecting on past experiences can help in learning and growth, but excessive rumination can be harmful.",
+            no: "While some reflection is healthy, avoiding past experiences can hinder personal growth.",
+          },
+        },
+        {
+          id: 6,
+          text: "Do you ever feel hopeless or without purpose?",
+          category: "Suicidal Thoughts",
+          next: {
+            yes: 12,
+            no: 13,
+          },
+          explanation: {
+            yes: "Feelings of hopelessness and purposelessness can be signs of depression or other mental health conditions. It's important to seek help if you're experiencing these feelings.",
+            no: "A sense of hope and purpose is essential for mental well-being.",
+          },
+        },
+        {
+          id: 7,
+          text: "Have you ever thought about self-harm as a way to cope?",
+          category: "Suicidal Thoughts",
+          next: {
+            yes: 14,
+            no: 15,
+          },
+          explanation: {
+            yes: "Thoughts of self-harm are serious and indicate a need for professional help. It's important to reach out to a mental health professional or crisis hotline.",
+            no: "This is a positive sign, but it's important to have healthy coping mechanisms in place.",
+          },
+        },
+        {
+          id: 8,
+          text: "Do you ever feel that people would be better off without you?",
+          category: "Suicidal Thoughts",
+          next: {
+            yes: 16,
+            no: 17,
+          },
+          explanation: {
+            yes: "These thoughts can be a sign of suicidal ideation. It's crucial to seek professional help immediately.",
+            no: "This is a positive sign, but it's important to monitor your mental health and seek help if needed.",
+          },
+        },
+        {
+          id: 9,
+          text: "Do you feel like you're unable to ask for help?",
+          category: "Suicidal Thoughts",
+          next: {
+            yes: 18,
+            no: 19,
+          },
+          explanation: {
+            yes: "Difficulty asking for help can hinder recovery. It's important to overcome this barrier and reach out to others.",
+            no: "Being able to ask for help is a sign of strength and can aid in recovery.",
+          },
+        },
+        {
+          id: 10,
+          text: "Do you have a support system to turn to in tough times?",
+          category: "Suicidal Thoughts",
+          next: {
+            yes: 20,
+            no: 21,
+          },
+          explanation: {
+            yes: "A strong support system can provide emotional support and reduce feelings of isolation.",
+            no: "Building a support system can be beneficial for mental health.",
+          },
+        },
+        {
+          id: 11,
+          text: "Do you often feel paralyzed by fear?",
+          category: "Fear",
+          next: {
+            yes: 22,
+            no: 23,
+          },
+          explanation: {
+            yes: "Excessive fear can hinder daily life and relationships.",
+            no: "The ability to manage fear is a sign of emotional resilience.",
+          },
+        },
+        {
+          id: 12,
+          text: "Do you avoid certain situations due to anxiety?",
+          category: "Fear",
+          next: {
+            yes: 24,
+            no: 25,
+          },
+          explanation: {
+            yes: "Avoidance behaviors can limit opportunities and contribute to anxiety disorders.",
+            no: "Facing fears can help build resilience and reduce anxiety.",
+          },
+        },
+        {
+          id: 13,
+          text: "Do you experience physical symptoms, like sweating, when afraid?",
+          category: "Fear",
+          next: {
+            yes: 26,
+            no: 27,
+          },
+          explanation: {
+            yes: "Physical symptoms of anxiety can be debilitating and impact daily life.",
+            no: "While some physical sensations are normal, excessive physical symptoms may indicate anxiety.",
+          },
+        },
+        {
+          id: 14,
+          text: "Does fear often stop you from doing things you want?",
+          category: "Fear",
+          next: {
+            yes: 28,
+            no: 29,
+          },
+          explanation: {
+            yes: "Fear can limit opportunities and personal growth.",
+            no: "Overcoming fears can lead to greater confidence and satisfaction.",
+          },
+        },
+        {
+          id: 15,
+          text: "Do you feel safe and secure in your environment?",
+          category: "Fear",
+          next: {
+            yes: 30,
+            no: 31,
+          },
+          explanation: {
+            yes: "Feeling safe and secure is essential for mental well-being.",
+            no: "Feeling unsafe can lead to anxiety and stress.",
+          },
+        },
+        {
+          id: 16,
+          text: "Do you find joy in everyday activities?",
+          category: "Happiness",
+          next: {
+            yes: 32,
+            no: 33,
+          },
+          explanation: {
+            yes: "Finding joy in everyday life can boost happiness and overall well-being.",
+            no: "Lack of joy can indicate depression or other mental health issues.",
+          },
+        },
+        {
+          id: 17,
+          text: "Do you often feel grateful for the things you have?",
+          category: "Happiness",
+          next: {
+            yes: 34,
+            no: 35,
+          },
+          explanation: {
+            yes: "Gratitude can increase happiness and reduce stress.",
+            no: "Practicing gratitude can improve overall well-being.",
+          },
+        },
+        {
+          id: 18,
+          text: "Do you enjoy spending time with loved ones?",
+          category: "Happiness",
+          next: {
+            yes: 36,
+            no: 37,
+          },
+          explanation: {
+            yes: "Spending quality time with loved ones can strengthen relationships and increase happiness.",
+            no: "Not enjoying time with loved ones might be a sign of social withdrawal or other emotional issues.",
+          },
+        },
+        {
+          id: 19,
+          text: "Do you consider yourself a positive person?",
+          category: "Happiness",
+          next: {
+            yes: 38,
+            no: 39,
+          },
+          explanation: {
+            yes: "A positive outlook can improve mental health and resilience.",
+            no: "A negative outlook can contribute to feelings of sadness and hopelessness.",
+          },
+        },
+        {
+          id: 20,
+          text: "Do you find it easy to smile or laugh?",
+          category: "Happiness",
+          next: {
+            yes: 40,
+            no: 41,
+          },
+          explanation: {
+            yes: "Smiling and laughter can boost mood and reduce stress.",
+            no: "Difficulty smiling or laughing may indicate underlying emotional issues.",
+          },
+        },
+      ];
+
+      let currentIndex = 0;
+      let responses = [];
+
+      const startButton = document.getElementById("start-button");
+      const questionContainer = document.getElementById("question-container");
+      const questionText = document.getElementById("question-text");
+      const yesButton = document.getElementById("yes-button");
+      const noButton = document.getElementById("no-button");
+      const summaryContainer = document.getElementById("summary-container");
+      const summaryContent = document.getElementById("summary-content");
+
+      function renderQuestion() {
+        const currentQuestion = questions[currentIndex];
+        questionText.textContent = `Question ${currentQuestion.id}: ${currentQuestion.text}`;
+        questionContainer.classList.remove("hidden");
       }
 
-      updateLocation(); // Initial call to get location
-      setInterval(updateLocation, 1000); // Update location every second
+      function showSummary() {
+        questionContainer.classList.add("hidden");
+        summaryContainer.classList.remove("hidden");
+
+        let summaryHtml = "";
+        responses.forEach((response, index) => {
+          const question = questions[index];
+          const explanation = question.explanation[response];
+          summaryHtml += `
+                    <div>
+                        <p><strong>Question ${question.id}:</strong> ${
+            question.text
+          }</p>
+                        <p><strong>Your Answer:</strong> ${
+                          response.charAt(0).toUpperCase() + response.slice(1)
+                        }</p>
+                        <p><strong>Explanation:</strong> ${explanation}</p>
+                    </div>
+                    <hr />
+                `;
+        });
+
+        summaryContent.innerHTML = summaryHtml;
+      }
+
+      yesButton.addEventListener("click", () => {
+        responses[currentIndex] = "yes";
+        currentIndex++;
+        if (currentIndex < questions.length) {
+          renderQuestion();
+        } else {
+          showSummary();
+        }
+      });
+
+      noButton.addEventListener("click", () => {
+        responses[currentIndex] = "no";
+        currentIndex++;
+        if (currentIndex < questions.length) {
+          renderQuestion();
+        } else {
+          showSummary();
+        }
+      });
+
+      startButton.addEventListener("click", () => {
+        currentIndex = 0;
+        responses = [];
+        startButton.classList.add("hidden");
+        summaryContainer.classList.add("hidden");
+        renderQuestion();
+      });
     </script>
   </body>
 </html>
-
